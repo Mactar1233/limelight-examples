@@ -22,10 +22,13 @@ public class Robot extends TimedRobot {
     driveWithJoystick(false);
     m_swerve.updateOdometry();
   }
-
+  @Override
+  public void teleopInit() {
+  }
   @Override
   public void teleopPeriodic() {
     driveWithJoystick(true);
+    LimelightHelpers.setCropWindow("limelight", -.5, .7, -1, .9);
   }
 
   private void driveWithJoystick(boolean fieldRelative) {
