@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.motorcontrol.PWMSparkMax;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 
 /**
  * The methods in this class are called automatically corresponding to each mode, as described in
@@ -19,6 +20,7 @@ public class Robot extends TimedRobot {
   private final PWMSparkMax m_leftDrive;
   private final PWMSparkMax m_rightDrive;
   private final XboxController m_Controller;
+  private final DifferentialDrive m_drive;
   double leftSpeed = 0.0;
   double rightSpeed = 0.0;
   double deadband = 0.1; // Deadband threshold
@@ -31,16 +33,12 @@ public class Robot extends TimedRobot {
     m_leftDrive = new PWMSparkMax(0); // Replace with actual PWM port for left drive
     m_rightDrive = new PWMSparkMax(1); // Replace with actual PWM port for right drive
     m_Controller = new XboxController(0); // Replace with actual port for Xbox controller
+    m_drive = new DifferentialDrive(m_leftDrive, m_rightDrive);
 
     m_rightDrive.setInverted(true);
   }
 
-  public void setDrive(double leftSpeed, double rightSpeed) {
-    m_leftDrive.set(leftSpeed);
-    m_rightDrive.set(rightSpeed);
-  }
-
-  double limelight_aim_proportional()
+  double getLimelightAimSpeed()
   {    
     // kP (constant of proportionality)
     // this is a hand-tuned number that determines the aggressiveness of our proportional control loop
@@ -64,7 +62,7 @@ public class Robot extends TimedRobot {
   // simple proportional ranging control with Limelight's "ty" value
   // this works best if your Limelight's mount height and target mount height are different.
   // if your limelight and target are mounted at the same or similar heights, use "ta" (area) for target ranging rather than "ty"
-  double limelight_range_proportional(){
+  double getLimelightRangeSpeed(){
     // kP (constant of proportionality)
     // this is a hand-tuned number that determines the aggressiveness of our proportional control loop
     // if it is too high, the robot will oscillate.
@@ -139,25 +137,25 @@ public class Robot extends TimedRobot {
   
   // basic tank drive control
   // This sets the drive motors based on joystick input
-  setDrive(leftSpeed, rightSpeed);
+  m_drive.tankDrive(leftSpeed, rightSpeed);
   
   // A Button - Turn in place toward target
   if(m_Controller.getAButton()){
     if(LimelightHelpers.getTV("limelight")) {
-      //steer is set to the output of the limelight_aim_proportional function
+      //steer is set to the output of the getLimelightAimSpeed function
       // this will turn the robot in place toward the target
-      double steer = limelight_aim_proportional();
-      setDrive(-steer, steer);  // CORRECTED: opposite signs for turning in place
+      double steer = getLimelightAimSpeed();
+      m_drive.tankDrive(-steer, steer);  // CORRECTED: opposite signs for turning in place
     }
   }
   
   // B Button - Drive forward/backward toward target (range control)
   if(m_Controller.getBButton()){
     if(LimelightHelpers.getTV("limelight")) {
-      // forward is set to the output of the limelight_range_proportional function
+      // forward is set to the output of the getLimelightRangeSpeed function
       // this will drive the robot forward or backward toward the target depending on the target's distance
-      double forward = limelight_range_proportional();
-      setDrive(forward, forward);  // Both wheels same direction for forward/back
+      double forward = getLimelightRangeSpeed();
+      m_drive.tankDrive(forward, forward);  // Both wheels same direction for forward/back
     }
   }
   
@@ -165,14 +163,14 @@ public class Robot extends TimedRobot {
   if(m_Controller.getXButton()){
     if(LimelightHelpers.getTV("limelight")) {
       // This combines aiming and range control
-      // steer is set to the output of the limelight_aim_proportional function
-      // forward is set to the output of the limelight_range_proportional function
+      // steer is set to the output of the getLimelightAimSpeed function
+      // forward is set to the output of the getLimelightRangeSpeed function
       // This allows the robot to both aim and move toward the target
       //when the robot has aimed correctly steer should be zero and when it is at the correct distance forward should be zero
       // This will drive the robot forward while turning to face the target
-      double steer = limelight_aim_proportional();
-      double forward = limelight_range_proportional();
-      setDrive(forward - steer, forward + steer);  // CORRECTED: proper differential drive
+      double steer = getLimelightAimSpeed();
+      double forward = getLimelightRangeSpeed();
+      m_drive.tankDrive(forward - steer, forward + steer);  // CORRECTED: proper differential drive
     }
   }
   
@@ -180,20 +178,20 @@ public class Robot extends TimedRobot {
   if(m_Controller.getYButton()){
     if(LimelightHelpers.getTV("limelight")) {
       // This combines aiming and range control with manual joystick input
-      // steer is set to the output of the limelight_aim_proportional function
-      // forward is set to the output of the limelight_range_proportional function
+      // steer is set to the output of the getLimelightAimSpeed function
+      // forward is set to the output of the getLimelightRangeSpeed function
       // Manual joystick input is added for fine control
       // This allows the robot to both aim and move toward the target while still allowing manual control
       //when the robot has aimed correctly steer should be zero and when it is at the correct distance forward should be zero
       // This will drive the robot forward while turning to face the target, with manual joystick input
-      double steer = limelight_aim_proportional();
-      double forward = limelight_range_proportional();
+      double steer = getLimelightAimSpeed();
+      double forward = getLimelightRangeSpeed();
       
       // Add manual joystick input for fine control
       double manualLeft = leftJoystickY * 0.3;   // Reduced influence
       double manualRight = rightJoystickY * 0.3; // Reduced influence
       
-      setDrive(forward - steer + manualLeft, forward + steer + manualRight);
+      m_drive.tankDrive(forward - steer + manualLeft, forward + steer + manualRight);
     }
   }
   }
