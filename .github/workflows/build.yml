@@ -51,16 +51,6 @@ jobs:
           echo "gradlew not found in ${{ matrix.project }}/"
         fi
       
-    - name: Download vendor libraries
-      working-directory: ${{ matrix.project }}
-      run: |
-        if [ -f "./gradlew" ]; then
-          ./gradlew vendordep --console=plain
-        else
-          echo "Using gradle command instead of gradlew"
-          gradle vendordep --console=plain
-        fi
-      
     - name: Build with Gradle
       working-directory: ${{ matrix.project }}
       run: |
