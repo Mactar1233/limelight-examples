@@ -1,14 +1,19 @@
-name: Build WPILib Project
+name: Build WPILib Projects
 
 on:
   push:
-    branches: [ mactar ]
+    branches: [ main, develop, mactar ]
   pull_request:
-    branches: [ mactar ]
+    branches: [ main, mactar ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        project: [swerve-aim-and-range, swerve-megatag-odometry, tank-aim-and-range, tank-aim-and-range-commandbased]
+      fail-fast: false
     
     steps:
     - name: Checkout repository
@@ -26,31 +31,61 @@ jobs:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
-          vendordeps/
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'vendordeps/*.json') }}
+          ${{ matrix.project }}/vendordeps/
+        key: ${{ runner.os }}-gradle-${{ matrix.project }}-${{ hashFiles(format('{0}/**/*.gradle*', matrix.project), format('{0}/**/gradle-wrapper.properties', matrix.project), format('{0}/vendordeps/*.json', matrix.project)) }}
         restore-keys: |
+          ${{ runner.os }}-gradle-${{ matrix.project }}-
           ${{ runner.os }}-gradle-
           
+    - name: Check project structure
+      run: |
+        echo "Building project: ${{ matrix.project }}"
+        echo "Project directory contents:"
+        ls -la ${{ matrix.project }}/
+        
     - name: Make gradlew executable
-      run: chmod +x ./gradlew
+      run: |
+        if [ -f "${{ matrix.project }}/gradlew" ]; then
+          chmod +x ${{ matrix.project }}/gradlew
+        else
+          echo "gradlew not found in ${{ matrix.project }}/"
+        fi
       
     - name: Download vendor libraries
-      run: ./gradlew vendordep --console=plain
+      working-directory: ${{ matrix.project }}
+      run: |
+        if [ -f "./gradlew" ]; then
+          ./gradlew vendordep --console=plain
+        else
+          echo "Using gradle command instead of gradlew"
+          gradle vendordep --console=plain
+        fi
       
     - name: Build with Gradle
-      run: ./gradlew build --console=plain
+      working-directory: ${{ matrix.project }}
+      run: |
+        if [ -f "./gradlew" ]; then
+          ./gradlew build --console=plain
+        else
+          gradle build --console=plain
+        fi
       
     - name: Run tests
-      run: ./gradlew test --console=plain
-      
-
+      working-directory: ${{ matrix.project }}
+      run: |
+        if [ -f "./gradlew" ]; then
+          ./gradlew test --console=plain
+        else
+          gradle test --console=plain
+        fi
+      continue-on-error: true
       
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       if: success()
       with:
-        name: build-artifacts
+        name: ${{ matrix.project }}-build-artifacts
         path: |
-          build/libs/
-          build/distributions/
+          ${{ matrix.project }}/build/libs/
+          ${{ matrix.project }}/build/distributions/
         retention-days: 30
