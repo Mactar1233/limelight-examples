@@ -74,7 +74,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: success()
       with:
-        name: ${{ matrix.project }}-build-artifacts
+        name: ${{ replace(matrix.project, '/', '-') }}-build-artifacts
         path: |
           ${{ matrix.project }}/build/libs/
           ${{ matrix.project }}/build/distributions/
