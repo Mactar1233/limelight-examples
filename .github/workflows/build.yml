@@ -2,9 +2,9 @@ name: Build WPILib Project
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ mactar ]
   pull_request:
-    branches: [ main ]
+    branches: [ mactar ]
 
 jobs:
   build:
