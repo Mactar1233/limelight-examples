@@ -12,7 +12,7 @@ jobs:
     
     strategy:
       matrix:
-        project: [swerve-aim-and-range, swerve-megatag-odometry, tank-aim-and-range, tank-aim-and-range-commandbased]
+        project: [java-wpilib/swerve-aim-and-range, java-wpilib/swerve-megatag-odometry, java-wpilib/tank-aim-and-range, java-wpilib/tank-aim-and-range-commandbased]
       fail-fast: false
     
     steps:
