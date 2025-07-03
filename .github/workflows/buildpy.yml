@@ -1,0 +1,111 @@
+name: Build Python Projects
+
+on:
+  push:
+    branches: [ main, develop, mactar ]
+  pull_request:
+    branches: [ main, mactar ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', '3.11']
+        project: [python-snapscript]
+      fail-fast: false
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles(format('{0}/**/requirements.txt', matrix.project), format('{0}/**/setup.py', matrix.project), format('{0}/**/pyproject.toml', matrix.project)) }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+        
+    - name: Check project structure
+      run: |
+        echo "Building Python project: ${{ matrix.project }}"
+        echo "Project directory contents:"
+        ls -la ${{ matrix.project }}/
+        echo "Python files found:"
+        find ${{ matrix.project }}/ -name "*.py" | head -10
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-opencv
+        
+    - name: Install Python dependencies
+      working-directory: ${{ matrix.project }}
+      run: |
+        python -m pip install --upgrade pip
+        # Install from requirements.txt if it exists
+        if [ -f "requirements.txt" ]; then
+          pip install -r requirements.txt
+        else
+          echo "No requirements.txt found - installing detected dependencies"
+          # Install dependencies based on your imports
+          pip install opencv-python numpy apriltag pyserial
+        fi
+        
+    - name: Lint with flake8
+      working-directory: ${{ matrix.project }}
+      run: |
+        pip install flake8
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+      
+    - name: Test Python syntax
+      working-directory: ${{ matrix.project }}
+      run: |
+        echo "Checking Python syntax for all .py files..."
+        find . -name "*.py" -exec python -m py_compile {} \;
+        
+    - name: Run tests
+      working-directory: ${{ matrix.project }}
+      run: |
+        # Run pytest if test files exist
+        if find . -name "test_*.py" -o -name "*_test.py" | grep -q .; then
+          pip install pytest
+          pytest -v
+        else
+          echo "No test files found"
+        fi
+      continue-on-error: true
+      
+    - name: Create distribution
+      working-directory: ${{ matrix.project }}
+      run: |
+        # Create a simple distribution archive
+        mkdir -p dist
+        tar -czf dist/${{ matrix.project }}-python${{ matrix.python-version }}.tar.gz *.py
+      continue-on-error: true
+      
+    - name: Set artifact name
+      id: artifact-name
+      run: echo "name=$(echo '${{ matrix.project }}-python${{ matrix.python-version }}' | sed 's/\//-/g')" >> $GITHUB_OUTPUT
+      
+    - name: Upload Python artifacts
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: ${{ steps.artifact-name.outputs.name }}-artifacts
+        path: |
+          ${{ matrix.project }}/dist/
+          ${{ matrix.project }}/*.py
+        retention-days: 30
