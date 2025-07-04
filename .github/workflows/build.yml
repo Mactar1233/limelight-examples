@@ -70,16 +70,3 @@ jobs:
         fi
       continue-on-error: true
       
-    - name: Set artifact name
-      id: artifact-name
-      run: echo "name=$(echo '${{ matrix.project }}' | sed 's/\//-/g')" >> $GITHUB_OUTPUT
-      
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: ${{ steps.artifact-name.outputs.name }}-build-artifacts
-        path: |
-          ${{ matrix.project }}/build/libs/
-          ${{ matrix.project }}/build/distributions/
-        retention-days: 30

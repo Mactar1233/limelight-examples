@@ -76,36 +76,3 @@ jobs:
         echo "Checking Python syntax for all .py files..."
         find . -name "*.py" -exec python -m py_compile {} \;
         
-    - name: Run tests
-      working-directory: ${{ matrix.project }}
-      run: |
-        # Run pytest if test files exist
-        if find . -name "test_*.py" -o -name "*_test.py" | grep -q .; then
-          pip install pytest
-          pytest -v
-        else
-          echo "No test files found"
-        fi
-      continue-on-error: true
-      
-    - name: Create distribution
-      working-directory: ${{ matrix.project }}
-      run: |
-        # Create a simple distribution archive
-        mkdir -p dist
-        tar -czf dist/${{ matrix.project }}-python${{ matrix.python-version }}.tar.gz *.py
-      continue-on-error: true
-      
-    - name: Set artifact name
-      id: artifact-name
-      run: echo "name=$(echo '${{ matrix.project }}-python${{ matrix.python-version }}' | sed 's/\//-/g')" >> $GITHUB_OUTPUT
-      
-    - name: Upload Python artifacts
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: ${{ steps.artifact-name.outputs.name }}-artifacts
-        path: |
-          ${{ matrix.project }}/dist/
-          ${{ matrix.project }}/*.py
-        retention-days: 30

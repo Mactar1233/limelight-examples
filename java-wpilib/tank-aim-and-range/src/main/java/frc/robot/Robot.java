@@ -53,7 +53,7 @@ public class Robot extends TimedRobot {
     m_drive = new DifferentialDrive(m_leftDrive, m_rightDrive);
 
     // Invert right motor so both sides drive forward when given positive values
-    // This is typically needed because motors are mounted facing opposite directions
+    // This is typically needed because motors are mounted facing opposite directions 
     m_rightDrive.setInverted(true);
   }
 /**
