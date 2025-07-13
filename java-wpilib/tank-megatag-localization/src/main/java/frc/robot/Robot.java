@@ -40,7 +40,8 @@ public class Robot extends TimedRobot {
     
     // Update pose estimation with Limelight data
     LimelightHelpers.PoseEstimate limelightMeasurement = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight");
-    
+
+    //Examples of filtering, this helps combat "bad" pose updates that happen 
     if (limelightMeasurement.tagCount >= 2) {
       // High confidence measurement with multiple tags
       m_drive.addVisionMeasurement(
